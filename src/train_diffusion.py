@@ -5,7 +5,8 @@ from torch.utils.data import Dataset, DataLoader
 from pathlib import Path
 from tqdm import tqdm
 
-from src.models import DiffusionModel
+from models.diffusion import DiffusionModel
+from models.diffusion_encoder import DiffusionEncoder
 
 
 class ParamDataset(Dataset):
@@ -48,19 +49,21 @@ def train_epoch(model: DiffusionModel, dataloader: DataLoader, optimizer: Optimi
 def generate_samples(model: DiffusionModel, device: str, path: str):
     model.eval()
     with torch.no_grad():
-        samples = model.sample(8, (3, 32, 32), device=device)
+        samples = model.sample(8, (2048,), device=device)
         # grid = make_grid(samples, nrow=4)
         # save_image(grid, path)
         return samples
 
 
-def train_diffusion(checkpoints_path, num_ecpochs=1):
-    diff_model = DiffusionModel()
-    opt = torch.optim.AdamW(diff_model.parameters())
+def train_diffusion(checkpoints_path, num_ecpochs=10000):
+    encoder = DiffusionEncoder(in_dim=7808, input_noise_factor=0.001, latent_noise_factor=0.1)
+    diff_model = DiffusionModel(eps_model=encoder, betas=(1e-4, 2e-2), num_timesteps=1000)
+    opt = torch.optim.AdamW(diff_model.parameters(), lr=1e-3, weight_decay=2e-6)
     dataset = ParamDataset(checkpoints_path)
     dataloader = DataLoader(dataset, batch_size=2, shuffle=True, pin_memory=True)
     for epoch in range(num_ecpochs):
         train_epoch(diff_model, dataloader, opt, 'cpu')
 
+
 if __name__ == '__main__':
-    make_dataset_from_checkpoints('param_checkpoints')
+    train_diffusion('param_checkpoints')

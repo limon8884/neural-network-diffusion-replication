@@ -20,7 +20,7 @@ def save_params_example(filename):
     return dict_scheme
 
 
-if __name__ == '__main__':    
+if __name__ == '__main__':
     scheme = save_params_example('param_checkpoints/test1.pt')
     scheme = save_params_example('param_checkpoints/test2.pt')
     with open('param_checkpoints/scheme.json', 'w') as f:
