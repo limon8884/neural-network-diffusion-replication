@@ -6,23 +6,19 @@ from pathlib import Path
 from tqdm import tqdm
 
 from models.diffusion import DiffusionModel
-from models.diffusion_encoder import DiffusionEncoder
+from models.diffusion_encoder import DDPMEncoder
 
 
-class ParamDataset(Dataset):
-    def __init__(self, filepath: str) -> None:
+class LatentParamDataset(Dataset):
+    def __init__(self, filepath: str, device: str) -> None:
         super().__init__()
-        self.params = []
-        pathlist = Path(filepath).rglob('*.pt')
-        for path in pathlist:
-            params_dict = torch.load(path)
-            self.params.append(params_dict)
+        self.latents = torch.load('latent.pt', map_location=device)
 
     def __len__(self):
-        return len(self.params)
+        return len(self.latents)
 
     def __getitem__(self, index):
-        return self.params[index]
+        return self.latents[index]
 
 
 def train_step(model: DiffusionModel, x: torch.Tensor, optimizer: Optimizer, device: str):
@@ -36,12 +32,10 @@ def train_step(model: DiffusionModel, x: torch.Tensor, optimizer: Optimizer, dev
 
 def train_epoch(model: DiffusionModel, dataloader: DataLoader, optimizer: Optimizer, device: str):
     model.train()
-    pbar = tqdm(dataloader)
     loss_ema = None
-    for x, _ in pbar:
+    for x in dataloader:
         train_loss = train_step(model, x, optimizer, device)
         loss_ema = train_loss if loss_ema is None else 0.9 * loss_ema + 0.1 * train_loss
-        pbar.set_description(f"loss: {loss_ema:.4f}")
 
     return loss_ema
 
@@ -55,15 +49,16 @@ def generate_samples(model: DiffusionModel, device: str, path: str):
         return samples
 
 
-def train_diffusion(checkpoints_path, num_ecpochs=10000):
-    encoder = DiffusionEncoder(in_dim=7808, input_noise_factor=0.001, latent_noise_factor=0.1)
-    diff_model = DiffusionModel(eps_model=encoder, betas=(1e-4, 2e-2), num_timesteps=1000)
+def train_diffusion(latent_params_path, num_ecpochs=10000, device='cuda'):
+    ddpm_encoder = DDPMEncoder(in_dim=48, in_channel=1)
+    diff_model = DiffusionModel(eps_model=ddpm_encoder, betas=(1e-4, 2e-2), num_timesteps=1000)
     opt = torch.optim.AdamW(diff_model.parameters(), lr=1e-3, weight_decay=2e-6)
-    dataset = ParamDataset(checkpoints_path)
-    dataloader = DataLoader(dataset, batch_size=2, shuffle=True, pin_memory=True)
+    dataset = LatentParamDataset(latent_params_path, device=device)
+    dataloader = DataLoader(dataset, batch_size=64, shuffle=False, pin_memory=True)
     for epoch in range(num_ecpochs):
-        train_epoch(diff_model, dataloader, opt, 'cpu')
+        train_epoch(diff_model, dataloader, opt, device)
+    torch.save(ddpm_encoder.state_dict(), 'ddpm_encoder.pt')
 
 
 if __name__ == '__main__':
-    train_diffusion('param_checkpoints')
+    train_diffusion('latent.pt', num_ecpochs=10, device='cpu')

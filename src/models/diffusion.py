@@ -1,5 +1,6 @@
 import torch
 import torch.nn as nn
+import random
 
 
 class DiffusionModel(nn.Module):
@@ -24,11 +25,11 @@ class DiffusionModel(nn.Module):
         eps = torch.randn_like(x)
 
         x_t = (
-            self.sqrt_alphas_cumprod[timestep, None, None, None] * x
-            + self.sqrt_one_minus_alpha_prod[timestep, None, None, None] * eps
+            self.sqrt_alphas_cumprod[timestep, None, None] * x
+            + self.sqrt_one_minus_alpha_prod[timestep, None, None] * eps
         )
 
-        return self.criterion(eps, self.eps_model(x_t, timestep / self.num_timesteps))
+        return self.criterion(eps, self.eps_model(x_t, timestep))
 
     def sample(self, num_samples: int, size, device) -> torch.Tensor:
         x_i = torch.randn(num_samples, *size, device=device)
