@@ -9,14 +9,20 @@ from models.diffusion_encoder import DDPMEncoder
 from models.autoencoder import AutoEncoder
 
 
-def sample_resnet(device):
+def sample_resnet(
+    result_model_path='result_model.pt',
+    autoencoder_path='autoencoder.pt',
+    ddpm_enocoder_path='ddpm_encoder.pt',
+    device='cuda',
+):
     resnet = resnet18().to(device)
-    resnet.load_state_dict(torch.load('resnet.pt', map_location=device))
+    resnet.fc = torch.nn.Linear(in_features=512, out_features=10, bias=True).to(device)
+    resnet.load_state_dict(torch.load(result_model_path, map_location=device))
 
     autoencoder = AutoEncoder(2048, 0, 0).to(device)
-    autoencoder.load_state_dict(torch.load('autoencoder.pt', map_location=device))
+    autoencoder.load_state_dict(torch.load(autoencoder_path, map_location=device))
     ddpm_encoder = DDPMEncoder(12, 1).to(device)
-    ddpm_encoder.load_state_dict(torch.load('ddpm_encoder.pt', map_location=device))
+    ddpm_encoder.load_state_dict(torch.load(ddpm_enocoder_path, map_location=device))
 
     diffusion = DiffusionModel(eps_model=ddpm_encoder, betas=(1e-4, 2e-2), num_timesteps=1000)
     z = diffusion.sample(1, (4, 3), device)
@@ -35,6 +41,4 @@ def sample_resnet(device):
 
 
 if __name__ == '__main__':
-    resnet = resnet18()
-    torch.save(resnet.state_dict(), 'resnet.pt')
-    model = sample_resnet('cpu')
+    model = sample_resnet()
