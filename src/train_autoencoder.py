@@ -59,7 +59,7 @@ def eval(model: AutoEncoder, dataloader: DataLoader, device: str):
 
 
 def train(checkpoints_path='param_checkpoints', latent_dataset_path='latent.pt', num_ecpochs=30000, device='cuda'):
-    autoencoder = AutoEncoder(in_dim=7808, input_noise_factor=0.001, latent_noise_factor=0.1).to(device)
+    autoencoder = AutoEncoder(in_dim=2048, input_noise_factor=0.001, latent_noise_factor=0.1).to(device)
     opt = torch.optim.AdamW(autoencoder.parameters(), lr=1e-3, weight_decay=2e-6)
     dataset = ParamDataset(checkpoints_path, device)
     train_size = int(0.8 * len(dataset))
