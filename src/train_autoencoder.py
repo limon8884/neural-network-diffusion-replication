@@ -66,8 +66,8 @@ def train(checkpoints_path='param_checkpoints', latent_dataset_path='latent_data
     dataset = ParamDataset(checkpoints_path, device)
     train_size = int(0.8 * len(dataset))
     train_dataset, test_dataset = random_split(dataset, [train_size, len(dataset) - train_size])
-    train_dataloader = DataLoader(train_dataset, batch_size=100, shuffle=False, pin_memory=True)
-    test_dataloader = DataLoader(test_dataset, batch_size=100, shuffle=False, pin_memory=True)
+    train_dataloader = DataLoader(train_dataset, batch_size=100, shuffle=False)
+    test_dataloader = DataLoader(test_dataset, batch_size=100, shuffle=False)
     for epoch in range(num_ecpochs):
         train_loss = train_epoch(autoencoder, train_dataloader, opt, device)
         test_loss = eval(autoencoder, test_dataloader, device)
