@@ -4,6 +4,7 @@ from torch.optim.optimizer import Optimizer
 from torch.utils.data import Dataset, DataLoader
 from pathlib import Path
 from tqdm import tqdm
+import wandb
 
 from models.diffusion import DiffusionModel
 from models.diffusion_encoder import DDPMEncoder
@@ -12,7 +13,7 @@ from models.diffusion_encoder import DDPMEncoder
 class LatentParamDataset(Dataset):
     def __init__(self, filepath: str, device: str) -> None:
         super().__init__()
-        self.latents = torch.load('latent.pt', map_location=device)
+        self.latents = torch.load(filepath, map_location=device)
 
     def __len__(self):
         return len(self.latents)
@@ -54,11 +55,17 @@ def train_diffusion(latent_params_path, num_ecpochs=10000, device='cuda'):
     diff_model = DiffusionModel(eps_model=ddpm_encoder, betas=(1e-4, 2e-2), num_timesteps=1000)
     opt = torch.optim.AdamW(diff_model.parameters(), lr=1e-3, weight_decay=2e-6)
     dataset = LatentParamDataset(latent_params_path, device=device)
-    dataloader = DataLoader(dataset, batch_size=64, shuffle=False, pin_memory=True)
+    dataloader = DataLoader(dataset, batch_size=64, shuffle=False)
     for epoch in range(num_ecpochs):
-        train_epoch(diff_model, dataloader, opt, device)
-    torch.save(ddpm_encoder.state_dict(), 'ddpm_encoder.pt')
+        loss = train_epoch(diff_model, dataloader, opt, device)
+        if (epoch + 1) % 10 == 0:
+            wandb.log({'train loss': loss.item()})
+            torch.save(ddpm_encoder.state_dict(), 'ddpm_encoder.pt')
 
 
 if __name__ == '__main__':
-    train_diffusion('latent.pt', num_ecpochs=10, device='cpu')
+    wandb.init(
+        project='NDN-replication',
+        name='ddpm_encoder',
+    )
+    train_diffusion('latent_dataset.pt')
