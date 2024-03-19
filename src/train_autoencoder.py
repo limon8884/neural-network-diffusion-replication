@@ -4,6 +4,7 @@ from torch.optim.optimizer import Optimizer
 from torch.utils.data import Dataset, DataLoader, random_split
 from pathlib import Path
 from tqdm import tqdm
+import wandb
 
 from models.autoencoder import AutoEncoder
 
@@ -58,7 +59,8 @@ def eval(model: AutoEncoder, dataloader: DataLoader, device: str):
     return loss_ema
 
 
-def train(checkpoints_path='param_checkpoints', latent_dataset_path='latent.pt', num_ecpochs=30000, device='cuda'):
+def train(checkpoints_path='param_checkpoints', latent_dataset_path='latent_dataset.pt', num_ecpochs=30000,
+          device='cuda'):
     autoencoder = AutoEncoder(in_dim=2048, input_noise_factor=0.001, latent_noise_factor=0.1).to(device)
     opt = torch.optim.AdamW(autoencoder.parameters(), lr=1e-3, weight_decay=2e-6)
     dataset = ParamDataset(checkpoints_path, device)
@@ -69,17 +71,20 @@ def train(checkpoints_path='param_checkpoints', latent_dataset_path='latent.pt',
     for epoch in range(num_ecpochs):
         train_loss = train_epoch(autoencoder, train_dataloader, opt, device)
         test_loss = eval(autoencoder, test_dataloader, device)
-        if epoch % 10 == 0:
-            print('train:', train_loss.item(), ' test:', test_loss.item())
+        if epoch % 100 == 0:
+            wandb.log({'train loss:': train_loss.item(), 'test loss:': test_loss.item()})
+            torch.save(autoencoder.state_dict(), 'autoencoder.pt')
 
     x = torch.stack(dataset.params, dim=0)
     with torch.no_grad():
         z = autoencoder.encode(x)
     torch.save(z, latent_dataset_path)
     print(z.shape)
-    torch.save(autoencoder.state_dict(), 'autoencoder.pt')
 
 
 if __name__ == '__main__':
-    train(device='cpu')
-    
+    wandb.init(
+        project='NDN-replication',
+        name='autoencoder',
+    )
+    train()
