@@ -112,7 +112,7 @@ class DDPMEncoder(nn.Module):
 
         input_shape = input.shape
         input = input.reshape(input.shape[0], 1, -1)
-        time_info = self.time_encode(time).reshape(input.shape[0], 1, -1)  # [0, None, None]
+        time_info = self.time_encode(time - 1).reshape(input.shape[0], 1, -1)  # [0, None, None]
         # time_info = time_info.repeat((input.shape[0], 1, 1))
 
         if len(input.size()) == 2:

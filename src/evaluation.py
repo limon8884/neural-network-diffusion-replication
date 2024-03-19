@@ -20,15 +20,21 @@ def sample_resnet(device):
 
     diffusion = DiffusionModel(eps_model=ddpm_encoder, betas=(1e-4, 2e-2), num_timesteps=1000)
     z = diffusion.sample(1, (4, 3), device)
-    x = autoencoder.decode(z).detach()
+    x = autoencoder.decode(z)[0]
     new_params = {
-        'layer4.1.bn1.weight': x[0:512],
-        'layer4.1.bn1.bias': x[512:1024],
-        'layer4.1.bn2.bias': x[1024:1536],
-        'layer4.1.bn2.weight': x[1356:2048],
+        'layer4.1.bn1.weight': x[0:512].detach(),
+        'layer4.1.bn1.bias': x[512:1024].detach(),
+        'layer4.1.bn2.bias': x[1024:1536].detach(),
+        'layer4.1.bn2.weight': x[1536:2048].detach(),
     }
     for name, param in resnet.named_parameters():
         if name in new_params:
-            param.copy_(new_params[name])
+            param.data.copy_(new_params[name])
 
     return resnet
+
+
+if __name__ == '__main__':
+    resnet = resnet18()
+    torch.save(resnet.state_dict(), 'resnet.pt')
+    model = sample_resnet('cpu')
