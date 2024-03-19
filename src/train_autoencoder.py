@@ -64,12 +64,12 @@ def train(checkpoints_path='param_checkpoints', latent_dataset_path='latent.pt',
     dataset = ParamDataset(checkpoints_path, device)
     train_size = int(0.8 * len(dataset))
     train_dataset, test_dataset = random_split(dataset, [train_size, len(dataset) - train_size])
-    train_dataloader = DataLoader(train_dataset, batch_size=len(train_dataset), shuffle=False, pin_memory=True)
-    test_dataloader = DataLoader(test_dataset, batch_size=len(test_dataset), shuffle=False, pin_memory=True)
+    train_dataloader = DataLoader(train_dataset, batch_size=100, shuffle=False, pin_memory=True)
+    test_dataloader = DataLoader(test_dataset, batch_size=100, shuffle=False, pin_memory=True)
     for epoch in range(num_ecpochs):
         train_loss = train_epoch(autoencoder, train_dataloader, opt, device)
         test_loss = eval(autoencoder, test_dataloader, device)
-        if epoch % 100 == 0:
+        if epoch % 10 == 0:
             print('train:', train_loss.item(), ' test:', test_loss.item())
 
     x = torch.stack(dataset.params, dim=0)
@@ -81,5 +81,5 @@ def train(checkpoints_path='param_checkpoints', latent_dataset_path='latent.pt',
 
 
 if __name__ == '__main__':
-    train(num_ecpochs=20, device='cpu')
+    train(device='cpu')
     
