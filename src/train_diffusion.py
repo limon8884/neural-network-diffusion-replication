@@ -50,7 +50,7 @@ def generate_samples(model: DiffusionModel, device: str, path: str):
         return samples
 
 
-def train_diffusion(latent_params_path, num_ecpochs=10000, device='cuda'):
+def train_diffusion(latent_params_path, num_ecpochs=60000, device='cuda'):
     ddpm_encoder = DDPMEncoder(in_dim=12, in_channel=1)
     diff_model = DiffusionModel(eps_model=ddpm_encoder, betas=(1e-4, 2e-2), num_timesteps=1000).to(device)
     opt = torch.optim.AdamW(diff_model.parameters(), lr=1e-3, weight_decay=2e-6)
