@@ -31,14 +31,19 @@ class DiffusionModel(nn.Module):
 
         return self.criterion(eps, self.eps_model(x_t, timestep))
 
-    def sample(self, num_samples: int, size, device) -> torch.Tensor:
+    def sample(self, num_samples: int, size, device, trajectory_path=None) -> torch.Tensor:
+        traj = []
         x_i = torch.randn(num_samples, *size, device=device)
+        traj.append(x_i)
 
         for i in range(self.num_timesteps, 0, -1):
             z = torch.randn(num_samples, *size, device=device) if i > 1 else 0
             eps = self.eps_model(x_i, torch.tensor([i] * num_samples).to(device))
             x_i = self.inv_sqrt_alphas[i] * (x_i - eps * self.one_minus_alpha_over_prod[i]) + self.sqrt_betas[i] * z
+            traj.append(x_i)
 
+        if trajectory_path is not None:
+            torch.save(torch.stack(traj, dim=1), trajectory_path)
         return x_i
 
 
