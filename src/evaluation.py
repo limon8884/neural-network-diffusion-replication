@@ -86,8 +86,7 @@ def eval_gen_model(layer_name, num_samples, device):
     return np.max(accs), np.mean(accs), np.median(accs)
 
 
-def get_result_table(device='cuda'):
-    num_samples = 32
+def get_result_table(num_samples=32, device='cuda'):
     df = {}
     for layer_name in ['10-14', '14-16', '16-18']:
         df['orig ' + layer_name] = eval_origin_models(layer_name, num_samples, device=device)
@@ -160,5 +159,5 @@ def make_visualization(layer_name='16-18', num_samples=4, device='cuda'):
 
 
 if __name__ == '__main__':
-    print(get_result_table())
-    make_visualization()
+    print(get_result_table(num_samples=4, device='cpu'))
+    # make_visualization()
