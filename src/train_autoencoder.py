@@ -72,6 +72,12 @@ def eval(model: AutoEncoder, dataloader: DataLoader, device: str):
 
 
 def train(layer_name, checkpoints_path='param_checkpoints', num_ecpochs=30000, device='cuda'):
+    if layer_name == '10-14':
+        checkpoints_path += '_layer3'
+    elif layer_name == '14-16':
+        checkpoints_path += '_layer4.0'
+    elif layer_name == '16-18':
+        checkpoints_path += '_layer4.1'
     autoencoder = AutoEncoder(in_dim=2048, input_noise_factor=0.001, latent_noise_factor=0.1).to(device)
     opt = torch.optim.AdamW(autoencoder.parameters(), lr=1e-3, weight_decay=2e-6)
     dataset = ParamDataset(checkpoints_path, device, layer_name)
