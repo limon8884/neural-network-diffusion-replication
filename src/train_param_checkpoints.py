@@ -23,20 +23,21 @@ def save_params_example(filename):
     torch.save(vec_to_save, filename)
     return dict_scheme
 
-def save_params(model, filename, layer="layer4.1"):
-    list_of_params = []
-    dict_scheme = {}
-    position = 0
+def save_params(model, filename, layer):
+    # list_of_params = []
+    dict_save = {}
+    # position = 0
     for name, param in model.named_parameters():
-        if 'bn' in name and (layer in name or (layer == "layer3.1" and "layer3.0" in name)):
+        if 'bn' in name and layer in name:
             # print(name, param.shape)
-            dict_scheme[name] = (position, position + len(param))
-            position += len(param)
+            # dict_scheme[name] = (position, position + len(param))
+            # position += len(param)
             assert len(param.shape) == 1
-            list_of_params.append(param)
-    vec_to_save = torch.cat(list_of_params, dim=0)
-    torch.save(vec_to_save, filename)
-    return dict_scheme
+            dict_save[name] = param
+            # list_of_params.append(param)
+    # vec_to_save = torch.cat(list_of_params, dim=0)
+    torch.save(dict_save, filename)
+    # return dict_scheme
 
 
 def train_resnet():
@@ -75,11 +76,11 @@ def train_resnet():
                 print(f'[{epoch + 1}, {i + 1:5d}] loss: {running_loss / 200:.3f}')
                 running_loss = 0.0
             if epoch == EPOCHS - 1 and (i + 1) % save_frec == 0:
-                for layer in ["layer3.1", "layer4.0", "layer4.1"]:
-                    scheme = save_params(model.to("cpu"), f'param_checkpoints_{layer}/{i + 1}.pt', layer)
-                    model.to(device)
-                    with open(f'param_checkpoints_{layer}/scheme.json', 'w') as f:
-                        json.dump(scheme, f)
+                for layer in ["layer3", "layer4.0", "layer4.1"]:
+                    save_params(model, f'param_checkpoints_{layer}/{i + 1}.pt', layer)
+                    # model.to(device)
+                    # with open(f'param_checkpoints_{layer}/scheme.json', 'w') as f:
+                    #     json.dump(scheme, f)
     torch.save(model.state_dict(), "result_model.pt")
 
 def test_resnet(model):
