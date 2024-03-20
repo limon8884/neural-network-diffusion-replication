@@ -1,4 +1,5 @@
 import torch
+import click
 from torchvision.models import resnet18
 from torch.optim.optimizer import Optimizer
 from torch.utils.data import Dataset, DataLoader, random_split
@@ -9,14 +10,25 @@ import wandb
 from models.autoencoder import AutoEncoder
 
 
+LAYERS = {
+    '10-14': [
+        'layer3.0.bn1.weight', 'layer3.0.bn1.bias', 'layer3.0.bn2.weight', 'layer3.0.bn2.bias',
+        'layer3.1.bn1.weight', 'layer3.1.bn1.bias', 'layer3.1.bn2.weight', 'layer3.1.bn2.bias',
+    ],
+    '14-16': ['layer4.0.bn1.weight', 'layer4.0.bn1.bias', 'layer4.0.bn2.weight', 'layer4.0.bn2.bias'],
+    '16-18': ['layer4.1.bn1.weight', 'layer4.1.bn1.bias', 'layer4.1.bn2.weight', 'layer4.1.bn2.bias'],
+}
+
+
 class ParamDataset(Dataset):
-    def __init__(self, filepath: str, device: str) -> None:
+    def __init__(self, filepath: str, device: str, layer_name: str) -> None:
         super().__init__()
         self.params = []
         pathlist = Path(filepath).rglob('*.pt')
         for path in pathlist:
             params_dict = torch.load(path, map_location=device)
-            self.params.append(params_dict)
+            for layer_name in LAYERS[layer_name]:
+                self.params.append(params_dict[layer_name])
 
     def __len__(self):
         return len(self.params)
@@ -59,32 +71,37 @@ def eval(model: AutoEncoder, dataloader: DataLoader, device: str):
     return loss_ema
 
 
-def train(checkpoints_path='param_checkpoints', latent_dataset_path='latent_dataset.pt', num_ecpochs=30000,
-          device='cuda'):
+def train(layer_name, checkpoints_path='param_checkpoints', num_ecpochs=30000, device='cuda'):
     autoencoder = AutoEncoder(in_dim=2048, input_noise_factor=0.001, latent_noise_factor=0.1).to(device)
     opt = torch.optim.AdamW(autoencoder.parameters(), lr=1e-3, weight_decay=2e-6)
-    dataset = ParamDataset(checkpoints_path, device)
+    dataset = ParamDataset(checkpoints_path, device, layer_name)
     train_size = int(0.8 * len(dataset))
     train_dataset, test_dataset = random_split(dataset, [train_size, len(dataset) - train_size])
-    train_dataloader = DataLoader(train_dataset, batch_size=100, shuffle=False)
-    test_dataloader = DataLoader(test_dataset, batch_size=100, shuffle=False)
+    train_dataloader = DataLoader(train_dataset, batch_size=len(train_dataset), shuffle=False)
+    test_dataloader = DataLoader(test_dataset, batch_size=len(test_dataset), shuffle=False)
     for epoch in range(num_ecpochs):
         train_loss = train_epoch(autoencoder, train_dataloader, opt, device)
         test_loss = eval(autoencoder, test_dataloader, device)
         if epoch % 100 == 0:
             wandb.log({'train loss:': train_loss.item(), 'test loss:': test_loss.item()})
-            torch.save(autoencoder.state_dict(), 'autoencoder.pt')
+            torch.save(autoencoder.state_dict(), f'autoencoder_{layer_name}.pt')
 
     x = torch.stack(dataset.params, dim=0)
     with torch.no_grad():
         z = autoencoder.encode(x)
-    torch.save(z, latent_dataset_path)
+    torch.save(z, f'latent_dataset_{layer_name}.pt')
     print(z.shape)
 
 
-if __name__ == '__main__':
+@click.command()
+@click.argument('layer_name')
+def main(layer_name):
     wandb.init(
         project='NDN-replication',
-        name='autoencoder',
+        name='autoencoder-' + layer_name,
     )
-    train()
+    train(layer_name=layer_name)
+
+
+if __name__ == '__main__':
+    main()
