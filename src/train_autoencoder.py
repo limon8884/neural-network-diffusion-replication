@@ -27,8 +27,10 @@ class ParamDataset(Dataset):
         pathlist = Path(filepath).rglob('*.pt')
         for path in pathlist:
             params_dict = torch.load(path, map_location=device)
+            params_vec = []
             for ln in LAYERS[layer_name]:
-                self.params.append(params_dict[ln])
+                params_vec.append(params_dict[ln])
+            self.params.append(torch.cat(params_vec, dim=0).to(device))
 
     def __len__(self):
         return len(self.params)
