@@ -1,14 +1,40 @@
 import torch
 import torchvision
 import torchvision.transforms as transforms
-import torch.optim as optim
-import json
 from torchvision.models import resnet18
 from models.diffusion import DiffusionModel
 from models.diffusion_encoder import DDPMEncoder
 from models.autoencoder import AutoEncoder
 
-from src.train_param_checkpoints import test_resnet
+
+def test_resnet(model):
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+    model = model.to(device)
+    transform = transforms.Compose([
+        transforms.ToTensor(),
+        transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
+    ])
+
+    batch_size = 64
+
+    testset = torchvision.datasets.CIFAR10(root='./data', train=False,
+                                           download=True, transform=transform)
+    testloader = torch.utils.data.DataLoader(testset, batch_size=batch_size,
+                                             shuffle=False, num_workers=2)
+    correct_pred = 0
+    total_pred = 0
+    with torch.no_grad():
+        for data in testloader:
+            images, labels = data
+            images, labels = images.to(device), labels.to(device)
+            outputs = model(images)
+            _, predictions = torch.max(outputs, 1)
+            for label, prediction in zip(labels, predictions):
+                if label == prediction:
+                    correct_pred += 1
+                total_pred += 1
+    return correct_pred / total_pred
+
 
 def sample_resnet(
     resnet,
