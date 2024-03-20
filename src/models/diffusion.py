@@ -39,7 +39,7 @@ class DiffusionModel(nn.Module):
             eps = self.eps_model(x_i, torch.tensor([i] * num_samples).to(device))
             x_i = self.inv_sqrt_alphas[i] * (x_i - eps * self.one_minus_alpha_over_prod[i]) + self.sqrt_betas[i] * z
 
-        return x_i.cpu()
+        return x_i
 
 
 def get_schedules(beta1: float, beta2: float, num_timesteps: int) -> dict[str, torch.Tensor]:
