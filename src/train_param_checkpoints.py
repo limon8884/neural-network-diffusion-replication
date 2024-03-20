@@ -81,6 +81,9 @@ def train_resnet():
                     # model.to(device)
                     # with open(f'param_checkpoints_{layer}/scheme.json', 'w') as f:
                     #     json.dump(scheme, f)
+            if i == 0:
+                acc = test_resnet(model)
+                print(f'TEST ACCURACY: {acc}')
     torch.save(model.state_dict(), "result_model.pt")
 
 def test_resnet(model):
