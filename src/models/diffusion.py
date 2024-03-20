@@ -22,7 +22,7 @@ class DiffusionModel(nn.Module):
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         current_device = torch.device("cuda") if x.is_cuda else torch.device("cpu")
         timestep = torch.randint(1, self.num_timesteps + 1, (x.shape[0],), device=current_device)
-        eps = torch.randn_like(x)
+        eps = torch.randn_like(x, device=current_device)
 
         x_t = (
             self.sqrt_alphas_cumprod[timestep, None, None] * x
