@@ -132,14 +132,14 @@ def make_tsne_vectors(trajs_path, points_path):
     vecs = torch.cat([traj_vecs, points_vecs], dim=1)
     bs = vecs.size(0)
     t = vecs.size(1)
-    vecs = vecs.reshape(bs * t, -1).numpy()
+    vecs = vecs.reshape(bs * t, -1).detach().numpy()
 
     tsne = TSNE()
     new_vecs = tsne.fit_transform(vecs).reshape(bs, t, 2)
     return new_vecs
 
 
-def plot_trajs_and_points(vecs, colors=['black', 'blue', 'green', 'orange']):
+def plot_trajs_and_points(vecs, colors):
     assert len(vecs.shape) == 3
     assert len(colors) == len(vecs)
     for v, c in zip(vecs, colors):
@@ -149,15 +149,15 @@ def plot_trajs_and_points(vecs, colors=['black', 'blue', 'green', 'orange']):
     plt.savefig('traj_fig.pdf')
 
 
-def make_visualization(layer_name='16-18', num_samples=4, device='cuda'):
+def make_visualization(layer_name='16-18', num_samples=4, device='cuda', colors=['black', 'blue', 'green', 'orange']):
     trajectory_path = f'trajs_{layer_name}.pt'
     points_path = f'points_{layer_name}.pt'
     get_trajectories(layer_name, num_samples, device)
     get_params_points(layer_name, num_samples, device)
     vecs = make_tsne_vectors(trajectory_path, points_path)
-    plot_trajs_and_points(vecs)
+    plot_trajs_and_points(vecs, colors)
 
 
 if __name__ == '__main__':
-    print(get_result_table(num_samples=4, device='cpu'))
-    # make_visualization()
+    get_result_table(num_samples=8, device='cpu')
+    make_visualization(device='cpu', num_samples=4)
