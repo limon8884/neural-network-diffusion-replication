@@ -1,3 +1,5 @@
 wandb
 click
 matplotlib
+pandas
+matplotlib
